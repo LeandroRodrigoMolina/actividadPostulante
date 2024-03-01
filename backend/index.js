@@ -62,6 +62,36 @@ app.get('/oficinas', (req, res) => {
     });
 });
 
+// Ruta para eliminar un subsidio existente
+app.put('/subsidios/:id', (req, res) => {
+    const subsidioId = req.params.id;
+
+    // Realiza la actualización en la base de datos para marcar el subsidio como eliminado
+    const sql = `UPDATE Subsidios SET Eliminado = true WHERE IdSubsidio = ?`;
+    connection.query(sql, [subsidioId], (err, result) => {
+        if (err) {
+            console.error('Error al eliminar subsidio:', err);
+            res.status(500).json({ message: 'Error al eliminar subsidio' });
+            return;
+        }
+        console.log('Subsidio eliminado correctamente');
+        res.status(200).json({ message: 'Subsidio eliminado correctamente' });
+    });
+});
+
+// Ruta para obtener los subsidios existentes que no han sido eliminados
+app.get('/subsidios', (req, res) => {
+    const sql = 'SELECT * FROM Subsidios WHERE Eliminado = false';
+    connection.query(sql, (err, results) => {
+        if (err) {
+            console.error('Error al obtener los subsidios:', err);
+            res.status(500).json({ message: 'Error al obtener los subsidios' });
+            return;
+        }
+        res.status(200).json(results);
+    });
+});
+
 
 // Manejar la señal SIGINT (Ctrl+C) para cerrar la conexión a la base de datos antes de salir
 process.on('SIGINT', () => {
