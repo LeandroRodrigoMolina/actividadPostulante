@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import SubsidioForm from "../Subsidio/SubsidioForm.js";
 import EliminarSubsidio from "../EliminarSubsidio/EliminarSubsidio.js";
+import AgregarSubsidioDetalle from "../SubsidioDetalle/AgregarSubsidioDetalle.js";
+
 import axios from 'axios';
 
 const App = () => {
@@ -32,6 +34,7 @@ const App = () => {
         <div>
             <SubsidioForm onSubsidioCreado={cargarSubsidios} />
             <EliminarSubsidio onEliminacionExitosa={handleEliminacionExitosa} />
+            <AgregarSubsidioDetalle />
         </div>
     );
 };

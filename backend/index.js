@@ -49,6 +49,23 @@ app.post('/subsidios/registrar', (req, res) => {
     });
 });
 
+// Ruta para agregar un nuevo subsidio-detalle
+app.post('/subsidios-detalle/agregar', (req, res) => {
+    const { IdSubsidio, IdBeneficiario, Importe, Estado } = req.body;
+
+    // Realiza la inserción en la base de datos
+    const sql = `INSERT INTO SubsidiosDetalle (IdSubsidio, IdBeneficiario, Importe, Estado) VALUES (?, ?, ?, ?)`;
+    connection.query(sql, [IdSubsidio, IdBeneficiario, Importe, Estado], (err, result) => {
+        if (err) {
+            console.error('Error al insertar subsidio-detalle:', err);
+            res.status(500).json({ message: 'Error al insertar subsidio-detalle' });
+            return;
+        }
+        console.log('Subsidio-detalle agregado correctamente');
+        res.status(200).json({ message: 'Subsidio-detalle agregado correctamente' });
+    });
+});
+
 // Ruta para obtener las oficinas disponibles
 app.get('/oficinas', (req, res) => {
     const sql = 'SELECT IdOficina, Descripcion FROM Oficinas';
