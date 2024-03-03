@@ -5,6 +5,7 @@ import EliminarSubsidio from "../EliminarSubsidio/EliminarSubsidio.js";
 import AgregarSubsidioDetalle from "../SubsidioDetalle/AgregarSubsidioDetalle.js";
 import SubsidioDetalleEliminar from "../SubsidioDetalleEliminar/SubsidioDetalleEliminar.js"; // Importa el nuevo componente
 
+
 import axios from 'axios';
 
 const App = () => {
@@ -36,7 +37,7 @@ const App = () => {
             <SubsidioForm onSubsidioCreado={cargarSubsidios} />
             <EliminarSubsidio onEliminacionExitosa={handleEliminacionExitosa} />
             <AgregarSubsidioDetalle />
-            <SubsidioDetalleEliminar onEliminacionExitosa={handleEliminacionExitosa} /> {/* Agrega el nuevo componente */}
+            <SubsidioDetalleEliminar onEliminacionExitosa={handleEliminacionExitosa} />
         </div>
     );
 };

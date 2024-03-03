@@ -3,6 +3,7 @@ require('dotenv').config(); // Cargar variables de entorno desde el archivo .env
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors'); // Importar el paquete CORS
+const PDFDocument = require('pdfkit'); // Importa la librería pdfkit
 
 // Crear una instancia de la aplicación Express
 const app = express();
@@ -64,13 +65,14 @@ const agregarSubsidioDetalle = async (req, res) => {
 // Función para verificar si el beneficiario existe en la base de datos
 const verificarBeneficiarioExistente = async (IdBeneficiario) => {
     return new Promise((resolve, reject) => {
-        const sql = 'SELECT * FROM Beneficiarios WHERE IdBeneficiario = ?';
+        const sql = 'SELECT * FROM SubsidiosDetalle WHERE IdBeneficiario = ?';
         connection.query(sql, [IdBeneficiario], (err, rows) => {
             if (err) {
                 console.error('Error al verificar beneficiario existente:', err);
                 reject(err);
             } else {
-                resolve(rows.length > 0);
+                // Si hay algún resultado, significa que el beneficiario ya está asociado a un subsidio detalle
+                resolve(rows.length === 0);
             }
         });
     });
@@ -98,12 +100,12 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
     const { IdSubsidio, IdBeneficiario, Importe, Estado } = req.body;
 
     try {
-        // Verificar si el beneficiario ya existe en la base de datos
+        // Verificar si el beneficiario ya existe y no está asociado a ningún subsidio detalle
         const beneficiarioExistente = await verificarBeneficiarioExistente(IdBeneficiario);
 
-        // Si el beneficiario no existe, enviar una indicación al frontend para que lo cree
+        // Si el beneficiario no existe o ya está asociado a un subsidio detalle, enviar una indicación al frontend
         if (!beneficiarioExistente) {
-            return res.status(404).json({ message: 'Beneficiario no encontrado', IdBeneficiario });
+            return res.status(404).json({ message: 'El beneficiario ya está asociado a un subsidio detalle o no existe', IdBeneficiario });
         }
 
         // Realizar la inserción del subsidio-detalle en la base de datos
@@ -115,13 +117,124 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
                 return;
             }
             console.log('Subsidio-detalle agregado correctamente');
-            res.status(201).json({ message: 'Subsidio-detalle agregado correctamente' });
+
+            // Obtener información del beneficiario
+            const sqlBeneficiario = 'SELECT * FROM Beneficiarios WHERE IdBeneficiario = ?';
+            connection.query(sqlBeneficiario, [IdBeneficiario], (err, beneficiarioResult) => {
+                if (err) {
+                    console.error('Error al obtener información del beneficiario:', err);
+                    res.status(500).json({ message: 'Error al obtener información del beneficiario' });
+                    return;
+                }
+
+                // Generar el PDF que contiene el subsidio detalle recién creado y la información del beneficiario
+                generatePDF({
+                    IdSubsidioDetalle: result.insertId,
+                    IdSubsidio,
+                    IdBeneficiario,
+                    Importe,
+                    Estado,
+                    Beneficiario: beneficiarioResult[0]
+                }, res);
+            });
         });
     } catch (error) {
         console.error('Error al agregar subsidio-detalle:', error);
         res.status(500).json({ message: 'Error al agregar subsidio-detalle' });
     }
 });
+
+// Ruta para generar un PDF con los datos del último subsidio detalle
+app.get('/subsidios-detalle/pdf-ultimo', async (req, res) => {
+    try {
+        const doc = new PDFDocument(); // Crea un nuevo documento PDF
+
+        // Establece el encabezado y el tipo de contenido de la respuesta HTTP
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=subsidio_detalle_ultimo.pdf');
+
+        // Pipe the PDF into the response stream
+        doc.pipe(res);
+
+        // Consulta para obtener solo el último subsidio detalle y la información del beneficiario
+        const sql = `SELECT sd.IdSubsidioDetalle, sd.IdSubsidio, sd.IdBeneficiario, sd.Importe, sd.Estado,
+                            b.TipoDocumento, b.NumeroDocumento, b.Apellido, b.Nombre
+                     FROM SubsidiosDetalle sd
+                     INNER JOIN Beneficiarios b ON sd.IdBeneficiario = b.IdBeneficiario
+                     ORDER BY sd.IdSubsidioDetalle DESC
+                     LIMIT 1`;
+
+        // Ejecuta la consulta en la base de datos
+        connection.query(sql, (err, result) => {
+            if (err) {
+                console.error('Error al obtener el último subsidio detalle:', err);
+                res.status(500).json({ message: 'Error al obtener el último subsidio detalle' });
+                return;
+            }
+
+            // Verifica si se encontró un subsidio detalle
+            if (result.length > 0) {
+                const subsidioDetalle = result[0];
+
+                // Agrega los datos del subsidio detalle al PDF
+                doc
+                    .fontSize(12)
+                    .text(`Subsidio detalle ID: ${subsidioDetalle.IdSubsidioDetalle}`, { align: 'left' })
+                    .text(`ID de Subsidio: ${subsidioDetalle.IdSubsidio}`, { align: 'left' })
+                    .text(`ID de Beneficiario: ${subsidioDetalle.IdBeneficiario}`, { align: 'left' })
+                    .text(`Importe: ${subsidioDetalle.Importe}`, { align: 'left' })
+                    .text(`Estado: ${subsidioDetalle.Estado}`, { align: 'left' })
+                    .text(`Tipo de Documento: ${subsidioDetalle.TipoDocumento}`, { align: 'left' })
+                    .text(`Número de Documento: ${subsidioDetalle.NumeroDocumento}`, { align: 'left' })
+                    .text(`Apellido: ${subsidioDetalle.Apellido}`, { align: 'left' })
+                    .text(`Nombre: ${subsidioDetalle.Nombre}`, { align: 'left' });
+            } else {
+                console.log('No se encontraron subsidios detalles.');
+                doc.text('No se encontraron subsidios detalles.');
+            }
+
+            // Finaliza el documento PDF
+            doc.end();
+        });
+    } catch (error) {
+        console.error('Error al generar el PDF:', error);
+        res.status(500).json({ message: 'Error al generar el PDF' });
+    }
+});
+
+// Función para generar el PDF con los subsidios detalle especificados y la información del beneficiario
+const generatePDF = (subsidioDetalle, res) => {
+    try {
+        const doc = new PDFDocument(); // Crea un nuevo documento PDF
+
+        // Establece el encabezado y el tipo de contenido de la respuesta HTTP
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=subsidios_detalle.pdf');
+
+        // Pipe the PDF into the response stream
+        doc.pipe(res);
+
+        // Agrega los datos del subsidio detalle al PDF
+        doc
+            .fontSize(12)
+            .text(`Subsidio detalle ID: ${subsidioDetalle.IdSubsidioDetalle}`, { align: 'left' })
+            .text(`ID de Subsidio: ${subsidioDetalle.IdSubsidio}`, { align: 'left' })
+            .text(`ID de Beneficiario: ${subsidioDetalle.IdBeneficiario}`, { align: 'left' })
+            .text(`Importe: ${subsidioDetalle.Importe}`, { align: 'left' })
+            .text(`Estado: ${subsidioDetalle.Estado}`, { align: 'left' })
+            .text(`Datos del Beneficiario:`, { align: 'left' })
+            .text(`Tipo de Documento: ${subsidioDetalle.Beneficiario.TipoDocumento}`, { align: 'left' })
+            .text(`Número de Documento: ${subsidioDetalle.Beneficiario.NumeroDocumento}`, { align: 'left' })
+            .text(`Apellido: ${subsidioDetalle.Beneficiario.Apellido}`, { align: 'left' })
+            .text(`Nombre: ${subsidioDetalle.Beneficiario.Nombre}`, { align: 'left' });
+
+        // Finaliza el documento PDF
+        doc.end();
+    } catch (error) {
+        console.error('Error al generar el PDF:', error);
+        res.status(500).json({ message: 'Error al generar el PDF' });
+    }
+};
 
 // Ruta para crear un nuevo beneficiario
 app.post('/beneficiarios/crear', (req, res) => {
@@ -218,6 +331,56 @@ app.get('/subsidios-detalle', (req, res) => {
     });
 });
 
+// Ruta para generar un PDF con los datos de los subsidios detalle
+app.get('/subsidios-detalle/pdf', async (req, res) => {
+    try {
+        const doc = new PDFDocument(); // Crea un nuevo documento PDF
+
+        // Establece el encabezado y el tipo de contenido de la respuesta HTTP
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename=subsidios_detalle.pdf');
+
+        // Pipe the PDF into the response stream
+        doc.pipe(res);
+
+        // Consulta para obtener los datos de los subsidios detalle y los beneficiarios
+        const sql = `SELECT sd.IdSubsidioDetalle, sd.IdSubsidio, sd.IdBeneficiario, sd.Importe, sd.Estado,
+                            b.TipoDocumento, b.NumeroDocumento, b.Apellido, b.Nombre
+                     FROM SubsidiosDetalle sd
+                     INNER JOIN Beneficiarios b ON sd.IdBeneficiario = b.IdBeneficiario`;
+
+        // Ejecuta la consulta en la base de datos
+        connection.query(sql, (err, results) => {
+            if (err) {
+                console.error('Error al obtener los subsidios detalle:', err);
+                res.status(500).json({ message: 'Error al obtener los subsidios detalle' });
+                return;
+            }
+
+            // Itera sobre los resultados y agrega los datos al PDF
+            results.forEach((subsidioDetalle, index) => {
+                doc
+                    .fontSize(12)
+                    .text(`Subsidio detalle ID: ${subsidioDetalle.IdSubsidioDetalle}`, { align: 'left' })
+                    .text(`ID de Subsidio: ${subsidioDetalle.IdSubsidio}`, { align: 'left' })
+                    .text(`ID de Beneficiario: ${subsidioDetalle.IdBeneficiario}`, { align: 'left' })
+                    .text(`Importe: ${subsidioDetalle.Importe}`, { align: 'left' })
+                    .text(`Estado: ${subsidioDetalle.Estado}`, { align: 'left' })
+                    .text(`Tipo de Documento: ${subsidioDetalle.TipoDocumento}`, { align: 'left' })
+                    .text(`Número de Documento: ${subsidioDetalle.NumeroDocumento}`, { align: 'left' })
+                    .text(`Apellido: ${subsidioDetalle.Apellido}`, { align: 'left' })
+                    .text(`Nombre: ${subsidioDetalle.Nombre}`, { align: 'left' })
+                    .moveDown();
+            });
+
+            // Finaliza el documento PDF
+            doc.end();
+        });
+    } catch (error) {
+        console.error('Error al generar el PDF:', error);
+        res.status(500).json({ message: 'Error al generar el PDF' });
+    }
+});
 
 // Manejar la señal SIGINT (Ctrl+C) para cerrar la conexión a la base de datos antes de salir
 // No necesitas cerrar la conexión aquí

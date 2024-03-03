@@ -1,6 +1,6 @@
-// AgregarSubsidioDetalle.js
 import React, { useState } from 'react';
 import axios from 'axios';
+import SubsidioDetallePDF from "../SubsidioDetallePDF/SubsidioDetallePDF.js";
 
 function AgregarSubsidioDetalle() {
     const initialFormData = {
@@ -16,6 +16,8 @@ function AgregarSubsidioDetalle() {
 
     const [formData, setFormData] = useState(initialFormData);
     const [showModal, setShowModal] = useState(false);
+    const [showPDF, setShowPDF] = useState(false);
+    const [showAlert, setShowAlert] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -26,14 +28,13 @@ function AgregarSubsidioDetalle() {
         e.preventDefault();
         try {
             const response = await axios.post('http://localhost:5000/subsidios-detalle/agregar', formData);
-            console.log(response.data); // Manejar la respuesta del servidor según sea necesario
-            // Puedes mostrar un mensaje de éxito, limpiar el formulario, etc.
+            console.log(response.data);
+            setShowPDF(true);
         } catch (error) {
-            if (error.response.status === 404 && error.response.data.message === 'Beneficiario no encontrado') {
-                setShowModal(true);
+            if (error.response.status === 404 && error.response.data.message === 'El beneficiario ya está asociado a un subsidio detalle o no existe') {
+                setShowAlert(true);
             } else {
                 console.error('Error al agregar subsidio-detalle:', error);
-                // Manejar errores, mostrar mensajes de error al usuario, etc.
             }
         }
     };
@@ -41,13 +42,11 @@ function AgregarSubsidioDetalle() {
     const handleCreateBeneficiary = async () => {
         try {
             const response = await axios.post('http://localhost:5000/beneficiarios/crear', formData);
-            console.log(response.data); // Manejar la respuesta del servidor según sea necesario
-            setShowModal(false); // Cerrar el modal después de la creación del beneficiario
-            setFormData(initialFormData); // Restablecer los valores de los campos
-            // Continuar con la lógica para agregar el subsidio-detalle si es necesario
+            console.log(response.data);
+            setShowModal(false);
+            setFormData(initialFormData);
         } catch (error) {
             console.error('Error al crear beneficiario:', error);
-            // Manejar errores, mostrar mensajes de error al usuario, etc.
         }
     };
 
@@ -55,7 +54,6 @@ function AgregarSubsidioDetalle() {
         <div>
             <h2>Agregar Nuevo Subsidio-Detalle</h2>
             <form onSubmit={handleSubmit}>
-                {/* Campos para agregar un subsidio-detalle */}
                 <div>
                     <label>ID del Subsidio:</label>
                     <input
@@ -95,17 +93,14 @@ function AgregarSubsidioDetalle() {
                         <option value="BA">BA (Baja)</option>
                     </select>
                 </div>
-                {/* Botón para enviar el formulario */}
                 <button type="submit">Agregar Subsidio-Detalle</button>
             </form>
 
-            {/* Ventana emergente para crear un nuevo beneficiario */}
             {showModal && (
                 <div className="modal">
                     <div className="modal-content">
                         <h2>Crear Nuevo Beneficiario</h2>
                         <p>Ingrese los detalles del nuevo beneficiario:</p>
-                        {/* Campos para el nuevo beneficiario */}
                         <input
                             type="text"
                             name="TipoDocumento"
@@ -134,11 +129,9 @@ function AgregarSubsidioDetalle() {
                             onChange={handleChange}
                             placeholder="Nombre"
                         />
-                        {/* Botones para crear o cancelar la creación del beneficiario */}
                         <button onClick={handleCreateBeneficiary}>Crear Beneficiario</button>
                         <button onClick={() => {
                             setShowModal(false);
-                            // Limpiar los campos del nuevo beneficiario al cerrar la ventana
                             setFormData({
                                 ...formData,
                                 TipoDocumento: '',
@@ -148,8 +141,16 @@ function AgregarSubsidioDetalle() {
                             });
                         }}>Cancelar</button>
                     </div>
+                    {showAlert && (
+                        <div className="alert">
+                            <p>Este beneficiario ya tiene un subsidio detalle asociado.</p>
+                            <button onClick={() => setShowAlert(false)}>Cerrar</button>
+                        </div>
+                    )}
                 </div>
             )}
+
+            {showPDF && <SubsidioDetallePDF />}
         </div>
     );
 }
