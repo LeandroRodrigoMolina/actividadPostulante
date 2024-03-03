@@ -33,35 +33,6 @@ app.use(express.json());
 // Configurar CORS para permitir solicitudes desde todos los orígenes
 app.use(cors());
 
-const agregarSubsidioDetalle = async (req, res) => {
-    try {
-        const { IdSubsidio, IdBeneficiario, Importe, Estado } = req.body;
-
-        // Verificar si el beneficiario ya existe en la base de datos
-        const beneficiarioExistente = await verificarBeneficiarioExistente(IdBeneficiario);
-
-        // Si el beneficiario no existe, enviar una indicación al frontend para que lo cree
-        if (!beneficiarioExistente) {
-            return res.status(404).json({ message: 'Beneficiario no encontrado', IdBeneficiario });
-        }
-
-        // Realizar la inserción del subsidio-detalle en la base de datos
-        const sql = `INSERT INTO SubsidiosDetalle (IdSubsidio, IdBeneficiario, Importe, Estado) VALUES (?, ?, ?, ?)`;
-        connection.query(sql, [IdSubsidio, IdBeneficiario, Importe, Estado], (err, result) => {
-            if (err) {
-                console.error('Error al agregar subsidio-detalle:', err);
-                res.status(500).json({ message: 'Error al agregar subsidio-detalle' });
-                return;
-            }
-            console.log('Subsidio-detalle agregado correctamente');
-            res.status(201).json({ message: 'Subsidio-detalle agregado correctamente' });
-        });
-    } catch (error) {
-        console.error('Error al agregar subsidio-detalle:', error);
-        res.status(500).json({ message: 'Error al agregar subsidio-detalle' });
-    }
-};
-
 // Función para verificar si el beneficiario existe en la base de datos
 const verificarBeneficiarioExistente = async (IdBeneficiario) => {
     return new Promise((resolve, reject) => {
@@ -78,34 +49,41 @@ const verificarBeneficiarioExistente = async (IdBeneficiario) => {
     });
 };
 
-// Ruta para registrar un nuevo subsidio
-app.post('/subsidios/registrar', (req, res) => {
-    const { Descripcion, IdOficina, FechaDeAlta, Anio, Mes, Estado, Eliminado } = req.body;
-
-    // Realiza la inserción en la base de datos
-    const sql = `INSERT INTO Subsidios (Descripcion, IdOficina, FechaDeAlta, Anio, Mes, Estado, Eliminado) VALUES (?, ?, ?, ?, ?, ?, false)`;
-    connection.query(sql, [Descripcion, IdOficina, FechaDeAlta, Anio, Mes, Estado, Eliminado], (err, result) => {
-        if (err) {
-            console.error('Error al insertar subsidio:', err);
-            res.status(500).json({ message: 'Error al insertar subsidio' });
-            return;
-        }
-        console.log('Subsidio registrado correctamente');
-        res.status(200).json({ message: 'Subsidio registrado correctamente' });
+// Función para verificar si el beneficiario ya está asociado a un subsidio detalle
+const verificarBeneficiarioAsociado = async (IdSubsidio, IdBeneficiario) => {
+    return new Promise((resolve, reject) => {
+        const sql = 'SELECT * FROM SubsidiosDetalle WHERE IdSubsidio = ? AND IdBeneficiario = ?';
+        connection.query(sql, [IdSubsidio, IdBeneficiario], (err, rows) => {
+            if (err) {
+                console.error('Error al verificar beneficiario asociado:', err);
+                reject(err);
+            } else {
+                // Si hay algún resultado, significa que el beneficiario ya está asociado a este subsidio
+                resolve(rows.length > 0);
+            }
+        });
     });
-});
+};
 
 // Ruta para agregar un nuevo subsidio-detalle
 app.post('/subsidios-detalle/agregar', async (req, res) => {
     const { IdSubsidio, IdBeneficiario, Importe, Estado } = req.body;
 
     try {
-        // Verificar si el beneficiario ya existe y no está asociado a ningún subsidio detalle
+        // Verificar si el beneficiario ya existe
         const beneficiarioExistente = await verificarBeneficiarioExistente(IdBeneficiario);
 
-        // Si el beneficiario no existe o ya está asociado a un subsidio detalle, enviar una indicación al frontend
-        if (!beneficiarioExistente) {
-            return res.status(404).json({ message: 'El beneficiario ya está asociado a un subsidio detalle o no existe', IdBeneficiario });
+        if (beneficiarioExistente === true) {
+            console.log("El beneficiario no existe sin !", beneficiarioExistente);
+            return res.status(404).json({ message: 'El beneficiario no existe', IdBeneficiario });
+        }
+
+        // Verificar si el beneficiario ya está asociado a un subsidio detalle
+        const beneficiarioAsociado = await verificarBeneficiarioAsociado(IdSubsidio, IdBeneficiario);
+
+        if (beneficiarioAsociado === true) {
+            console.log("El beneficiario ya está asociado a un subsidio de este tipo", beneficiarioAsociado);
+            return res.status(404).json({ message: 'El beneficiario ya está asociado a un subsidio de este tipo', IdBeneficiario });
         }
 
         // Realizar la inserción del subsidio-detalle en la base de datos
@@ -236,6 +214,23 @@ const generatePDF = (subsidioDetalle, res) => {
     }
 };
 
+// Ruta para registrar un nuevo subsidio
+app.post('/subsidios/registrar', (req, res) => {
+    const { Descripcion, IdOficina, FechaDeAlta, Anio, Mes, Estado, Eliminado } = req.body;
+
+    // Realiza la inserción en la base de datos
+    const sql = `INSERT INTO Subsidios (Descripcion, IdOficina, FechaDeAlta, Anio, Mes, Estado, Eliminado) VALUES (?, ?, ?, ?, ?, ?, false)`;
+    connection.query(sql, [Descripcion, IdOficina, FechaDeAlta, Anio, Mes, Estado, Eliminado], (err, result) => {
+        if (err) {
+            console.error('Error al insertar subsidio:', err);
+            res.status(500).json({ message: 'Error al insertar subsidio' });
+            return;
+        }
+        console.log('Subsidio registrado correctamente');
+        res.status(200).json({ message: 'Subsidio registrado correctamente' });
+    });
+});
+
 // Ruta para crear un nuevo beneficiario
 app.post('/beneficiarios/crear', (req, res) => {
     const { IdBeneficiario, TipoDocumento, NumeroDocumento, Apellido, Nombre } = req.body;
@@ -329,57 +324,6 @@ app.get('/subsidios-detalle', (req, res) => {
         }
         res.status(200).json(results);
     });
-});
-
-// Ruta para generar un PDF con los datos de los subsidios detalle
-app.get('/subsidios-detalle/pdf', async (req, res) => {
-    try {
-        const doc = new PDFDocument(); // Crea un nuevo documento PDF
-
-        // Establece el encabezado y el tipo de contenido de la respuesta HTTP
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename=subsidios_detalle.pdf');
-
-        // Pipe the PDF into the response stream
-        doc.pipe(res);
-
-        // Consulta para obtener los datos de los subsidios detalle y los beneficiarios
-        const sql = `SELECT sd.IdSubsidioDetalle, sd.IdSubsidio, sd.IdBeneficiario, sd.Importe, sd.Estado,
-                            b.TipoDocumento, b.NumeroDocumento, b.Apellido, b.Nombre
-                     FROM SubsidiosDetalle sd
-                     INNER JOIN Beneficiarios b ON sd.IdBeneficiario = b.IdBeneficiario`;
-
-        // Ejecuta la consulta en la base de datos
-        connection.query(sql, (err, results) => {
-            if (err) {
-                console.error('Error al obtener los subsidios detalle:', err);
-                res.status(500).json({ message: 'Error al obtener los subsidios detalle' });
-                return;
-            }
-
-            // Itera sobre los resultados y agrega los datos al PDF
-            results.forEach((subsidioDetalle, index) => {
-                doc
-                    .fontSize(12)
-                    .text(`Subsidio detalle ID: ${subsidioDetalle.IdSubsidioDetalle}`, { align: 'left' })
-                    .text(`ID de Subsidio: ${subsidioDetalle.IdSubsidio}`, { align: 'left' })
-                    .text(`ID de Beneficiario: ${subsidioDetalle.IdBeneficiario}`, { align: 'left' })
-                    .text(`Importe: ${subsidioDetalle.Importe}`, { align: 'left' })
-                    .text(`Estado: ${subsidioDetalle.Estado}`, { align: 'left' })
-                    .text(`Tipo de Documento: ${subsidioDetalle.TipoDocumento}`, { align: 'left' })
-                    .text(`Número de Documento: ${subsidioDetalle.NumeroDocumento}`, { align: 'left' })
-                    .text(`Apellido: ${subsidioDetalle.Apellido}`, { align: 'left' })
-                    .text(`Nombre: ${subsidioDetalle.Nombre}`, { align: 'left' })
-                    .moveDown();
-            });
-
-            // Finaliza el documento PDF
-            doc.end();
-        });
-    } catch (error) {
-        console.error('Error al generar el PDF:', error);
-        res.status(500).json({ message: 'Error al generar el PDF' });
-    }
 });
 
 // Manejar la señal SIGINT (Ctrl+C) para cerrar la conexión a la base de datos antes de salir

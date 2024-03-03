@@ -17,7 +17,6 @@ function AgregarSubsidioDetalle() {
     const [formData, setFormData] = useState(initialFormData);
     const [showModal, setShowModal] = useState(false);
     const [showPDF, setShowPDF] = useState(false);
-    const [showAlert, setShowAlert] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -31,9 +30,13 @@ function AgregarSubsidioDetalle() {
             console.log(response.data);
             setShowPDF(true);
         } catch (error) {
-            if (error.response.status === 404 && error.response.data.message === 'El beneficiario ya está asociado a un subsidio detalle o no existe') {
-                setShowAlert(true);
-            } else {
+            if (error.response.status === 404 && error.response.data.message === 'El beneficiario no existe') {
+                alert('El beneficiario no existe. Crealo.');
+                setShowModal(true);
+            }else if (error.response.status === 404 && error.response.data.message === 'El beneficiario ya está asociado a un subsidio de este tipo') {
+                alert('El beneficiario ya está asociado a un subsidio de este tipo');
+            }
+            else {
                 console.error('Error al agregar subsidio-detalle:', error);
             }
         }
@@ -141,12 +144,6 @@ function AgregarSubsidioDetalle() {
                             });
                         }}>Cancelar</button>
                     </div>
-                    {showAlert && (
-                        <div className="alert">
-                            <p>Este beneficiario ya tiene un subsidio detalle asociado.</p>
-                            <button onClick={() => setShowAlert(false)}>Cerrar</button>
-                        </div>
-                    )}
                 </div>
             )}
 
