@@ -369,6 +369,61 @@ app.get('/subsidios-detalle', (req, res) => {
     });
 });
 
+// Ruta para listar todos los subsidios de un beneficiario
+app.get('/subsidios/beneficiario/:id', async (req, res) => {
+    const beneficiarioId = req.params.id;
+
+    try {
+        // Realiza la consulta en la base de datos para obtener los subsidios del beneficiario
+        const sql = `
+            SELECT s.*
+            FROM Subsidios s
+            INNER JOIN SubsidiosDetalle sd ON s.IdSubsidio = sd.IdSubsidio
+            WHERE sd.IdBeneficiario = ?
+        `;
+
+        connection.query(sql, [beneficiarioId], (err, results) => {
+            if (err) {
+                console.error('Error al obtener los subsidios para el beneficiario:', err);
+                res.status(500).json({ message: 'Error al obtener los subsidios para el beneficiario' });
+                return;
+            }
+            res.status(200).json(results);
+        });
+    } catch (error) {
+        console.error('Error al listar los subsidios para el beneficiario:', error);
+        res.status(500).json({ message: 'Error al listar los subsidios para el beneficiario' });
+    }
+});
+
+// Define la ruta para listar los subsidios de una oficina en un rango de fechas
+app.get('/subsidios/oficina/:fechaInicio/:fechaFin', async (req, res) => {
+    const fechaInicio = req.params.fechaInicio;
+    const fechaFin = req.params.fechaFin;
+
+    try {
+        // Realiza la consulta en la base de datos para obtener los subsidios de la oficina en el rango de fechas
+        const sql = `
+            SELECT s.*
+            FROM Subsidios s
+            WHERE s.FechaDeAlta BETWEEN ? AND ?
+        `;
+
+        connection.query(sql, [fechaInicio, fechaFin], (err, results) => {
+            if (err) {
+                console.error('Error al obtener los subsidios para la oficina en el rango de fechas:', err);
+                res.status(500).json({ message: 'Error al obtener los subsidios para la oficina en el rango de fechas' });
+                return;
+            }
+            res.status(200).json(results);
+        });
+    } catch (error) {
+        console.error('Error al listar los subsidios para la oficina en el rango de fechas:', error);
+        res.status(500).json({ message: 'Error al listar los subsidios para la oficina en el rango de fechas' });
+    }
+});
+
+
 // Manejar la señal SIGINT (Ctrl+C) para cerrar la conexión a la base de datos antes de salir
 // No necesitas cerrar la conexión aquí
 process.on('SIGINT', () => {
