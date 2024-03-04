@@ -7,13 +7,11 @@ function SubsidiosBeneficiario() {
     const [personaId, setPersonaId] = useState('');
     const [resultados, setResultados] = useState([]);
 
-    // Función para limpiar los resultados previos y los campos de entrada
     const limpiarResultados = () => {
         setResultados([]);
         setPersonaId('');
     };
 
-    // Función para exportar a Excel
     const exportToExcel = () => {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(resultados);
@@ -21,7 +19,6 @@ function SubsidiosBeneficiario() {
         XLSX.writeFile(wb, 'subsidios.xlsx');
     };
 
-    // Función para exportar a PDF
     const exportToPDF = () => {
         const doc = new jsPDF();
         doc.text('Listado de Subsidios', 10, 10);
@@ -39,13 +36,12 @@ function SubsidiosBeneficiario() {
 
     const handleListarSubsidios = async () => {
         try {
-            // Validar que el campo no esté vacío
             if (!personaId) {
                 alert('Por favor, ingrese el ID de la persona.');
                 return;
             }
 
-            limpiarResultados(); // Limpiar resultados previos y campos de entrada
+            limpiarResultados();
 
             const response = await axios.get(`http://localhost:5000/subsidios/beneficiario/${personaId}`);
             setResultados(response.data);
@@ -64,10 +60,8 @@ function SubsidiosBeneficiario() {
 
             <button onClick={handleListarSubsidios}>Listar Subsidios</button>
 
-            {/* Botón para exportar a Excel */}
             <button onClick={exportToExcel}>Exportar a Excel</button>
 
-            {/* Botón para exportar a PDF */}
             <button onClick={exportToPDF}>Exportar a PDF</button>
 
             <div>

@@ -9,7 +9,6 @@ function SubsidiosOficina() {
     const [fechaFin, setFechaFin] = useState('');
     const [resultados, setResultados] = useState([]);
 
-    // Función para limpiar los campos y los resultados previos
     const limpiarCamposYResultados = () => {
         setIdOficina('');
         setFechaInicio('');
@@ -17,7 +16,6 @@ function SubsidiosOficina() {
         setResultados([]);
     };
 
-    // Función para exportar a Excel
     const exportToExcel = () => {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(resultados);
@@ -25,7 +23,6 @@ function SubsidiosOficina() {
         XLSX.writeFile(wb, 'subsidios_oficina.xlsx');
     };
 
-    // Función para exportar a PDF
     const exportToPDF = () => {
         const doc = new jsPDF();
         doc.text('Listado de Subsidios por Oficina', 10, 10);
@@ -43,13 +40,12 @@ function SubsidiosOficina() {
 
     const handleListarSubsidiosOficina = async () => {
         try {
-            // Validar que los campos no estén vacíos
             if (!idOficina || !fechaInicio || !fechaFin) {
                 alert('Por favor, complete todos los campos.');
                 return;
             }
 
-            limpiarCamposYResultados(); // Limpiar campos y resultados previos
+            limpiarCamposYResultados();
 
             const response = await axios.get(`http://localhost:5000/subsidios/oficina/${idOficina}/${fechaInicio}/${fechaFin}`);
             setResultados(response.data);
@@ -76,10 +72,8 @@ function SubsidiosOficina() {
 
             <button onClick={handleListarSubsidiosOficina}>Listar Subsidios por Oficina y Fecha</button>
 
-            {/* Botón para exportar a Excel */}
             <button onClick={exportToExcel}>Exportar a Excel</button>
 
-            {/* Botón para exportar a PDF */}
             <button onClick={exportToPDF}>Exportar a PDF</button>
 
             <div>

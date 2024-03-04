@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 function SubsidioForm() {
@@ -11,7 +11,6 @@ function SubsidioForm() {
     const [oficinas, setOficinas] = useState([]);
 
     useEffect(() => {
-        // Hacer una solicitud al backend para obtener las oficinas disponibles
         axios.get('http://localhost:5000/oficinas')
             .then(response => {
                 setOficinas(response.data);
@@ -32,17 +31,14 @@ function SubsidioForm() {
                 Anio: anio,
                 Mes: mes,
                 Estado: estado,
-                Eliminado: false // Establecer eliminado como falso por defecto
+                Eliminado: false
             });
             console.log(response.data.message);
-            // Aquí podrías mostrar un mensaje de éxito al usuario
         } catch (error) {
             console.error('Error al registrar subsidio:', error);
-            // Aquí podrías mostrar un mensaje de error al usuario
         }
     };
 
-    // Validar años positivos
     const handleAnioChange = (e) => {
         const value = parseInt(e.target.value);
         if (!isNaN(value) && value >= 0) {
@@ -52,6 +48,7 @@ function SubsidioForm() {
 
     return (
         <form onSubmit={handleSubmit}>
+            <h2>Agregar Nuevo Subsidio</h2>
             <div>
                 <label htmlFor="descripcion">Descripción:</label>
                 <input type="text" id="descripcion" value={descripcion}

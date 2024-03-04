@@ -1,24 +1,20 @@
-// Importar los módulos necesarios
-require('dotenv').config(); // Cargar variables de entorno desde el archivo .env
+require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2');
-const cors = require('cors'); // Importar el paquete CORS
-const PDFDocument = require('pdfkit'); // Importa la librería pdfkit
+const cors = require('cors');
+const PDFDocument = require('pdfkit');
 
-// Crear una instancia de la aplicación Express
 const app = express();
-const PORT = process.env.APP_PORT || 5000; // Usar el puerto de la variable de entorno o 5000 por defecto
+const PORT = process.env.APP_PORT || 5000;
 
-// Configurar la conexión a la base de datos MySQL
 const connection = mysql.createConnection({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: process.env.DB_PORT // Usar el puerto de la variable de entorno
+    port: process.env.DB_PORT
 });
 
-// Conectar a la base de datos MySQL
 connection.connect((err) => {
     if (err) {
         console.error('Error al conectar a la base de datos: ', err);
@@ -27,13 +23,9 @@ connection.connect((err) => {
     console.log('Conexión exitosa a la base de datos MySQL');
 });
 
-// Middleware para procesar el cuerpo de las solicitudes
 app.use(express.json());
-
-// Configurar CORS para permitir solicitudes desde todos los orígenes
 app.use(cors());
 
-// Función para verificar si el beneficiario existe en la base de datos
 const verificarBeneficiarioExistente = async (IdBeneficiario) => {
     return new Promise((resolve, reject) => {
         const sql = 'SELECT * FROM SubsidiosDetalle WHERE IdBeneficiario = ?';
@@ -42,14 +34,12 @@ const verificarBeneficiarioExistente = async (IdBeneficiario) => {
                 console.error('Error al verificar beneficiario existente:', err);
                 reject(err);
             } else {
-                // Si hay algún resultado, significa que el beneficiario ya está asociado a un subsidio detalle
                 resolve(rows.length === 0);
             }
         });
     });
 };
 
-// Función para verificar si el beneficiario ya está asociado a un subsidio detalle
 const verificarBeneficiarioAsociado = async (IdSubsidio, IdBeneficiario) => {
     return new Promise((resolve, reject) => {
         const sql = 'SELECT * FROM SubsidiosDetalle WHERE IdSubsidio = ? AND IdBeneficiario = ?';
@@ -58,7 +48,6 @@ const verificarBeneficiarioAsociado = async (IdSubsidio, IdBeneficiario) => {
                 console.error('Error al verificar beneficiario asociado:', err);
                 reject(err);
             } else {
-                // Si hay algún resultado, significa que el beneficiario ya está asociado a este subsidio
                 resolve(rows.length > 0);
             }
         });
@@ -74,17 +63,13 @@ const verificarBeneficiarioEnOficinaYSubsidio = async (IdOficina, IdBeneficiario
                 reject(err);
             } else {
                 try {
-                    // Iterar sobre los subsidios encontrados
                     for (const subsidio of subsidios) {
-                        // Verificar si el beneficiario ya está asociado a este subsidio
                         const beneficiarioAsociado = await verificarBeneficiarioAsociado(subsidio.IdSubsidio, IdBeneficiario);
                         if (beneficiarioAsociado) {
-                            // Si el beneficiario ya está asociado a este subsidio, resolver true
                             resolve(true);
                             return;
                         }
                     }
-                    // Si no se encontraron coincidencias, resolver false
                     resolve(false);
                 } catch (error) {
                     console.error('Error al verificar beneficiario asociado:', error);
@@ -94,7 +79,7 @@ const verificarBeneficiarioEnOficinaYSubsidio = async (IdOficina, IdBeneficiario
         });
     });
 };
-// Ruta para agregar un nuevo subsidio-detalle
+
 app.post('/subsidios-detalle/agregar', async (req, res) => {
     const { IdSubsidio, IdBeneficiario, Importe, Estado } = req.body;
 
@@ -105,7 +90,6 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
             return res.status(400).json({ message: 'El importe supera el límite permitido' });
         }
 
-        // Verificar si el beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes
         const oficinaSubsidioExistente = await verificarBeneficiarioEnOficinaYSubsidio(IdSubsidio, IdBeneficiario, req.body.Anio, req.body.Mes);
 
         if (oficinaSubsidioExistente === true) {
@@ -113,7 +97,6 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
             return res.status(409).json({ message: 'El beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes', IdBeneficiario });
         }
 
-        // Verificar si el beneficiario ya existe
         const beneficiarioExistente = await verificarBeneficiarioExistente(IdBeneficiario);
 
         if (beneficiarioExistente === true) {
@@ -121,7 +104,6 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
             return res.status(404).json({ message: 'El beneficiario no existe', IdBeneficiario });
         }
 
-        // Verificar si el beneficiario ya está asociado a un subsidio detalle
         const beneficiarioAsociado = await verificarBeneficiarioAsociado(IdSubsidio, IdBeneficiario);
 
         if (beneficiarioAsociado === true) {
@@ -129,7 +111,6 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
             return res.status(404).json({ message: 'El beneficiario ya está asociado a un subsidio de este tipo', IdBeneficiario });
         }
 
-        // Realizar la inserción del subsidio-detalle en la base de datos
         const sql = `INSERT INTO SubsidiosDetalle (IdSubsidio, IdBeneficiario, Importe, Estado) VALUES (?, ?, ?, ?)`;
         connection.query(sql, [IdSubsidio, IdBeneficiario, Importe, Estado], (err, result) => {
             if (err) {
@@ -137,9 +118,8 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
                 res.status(500).json({ message: 'Error al agregar subsidio-detalle' });
                 return;
             }
-            console.log('Subsidio-detalle agregado correctamente');
+            console.log('SubsidioForm-detalle agregado correctamente');
 
-            // Obtener información del beneficiario
             const sqlBeneficiario = 'SELECT * FROM Beneficiarios WHERE IdBeneficiario = ?';
             connection.query(sqlBeneficiario, [IdBeneficiario], (err, beneficiarioResult) => {
                 if (err) {
@@ -148,7 +128,6 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
                     return;
                 }
 
-                // Generar el PDF que contiene el subsidio detalle recién creado y la información del beneficiario
                 generatePDF({
                     IdSubsidioDetalle: result.insertId,
                     IdSubsidio,
@@ -165,19 +144,13 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
     }
 });
 
-// Ruta para generar un PDF con los datos del último subsidio detalle
 app.get('/subsidios-detalle/pdf-ultimo', async (req, res) => {
     try {
-        const doc = new PDFDocument(); // Crea un nuevo documento PDF
-
-        // Establece el encabezado y el tipo de contenido de la respuesta HTTP
+        const doc = new PDFDocument();
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=subsidio_detalle_ultimo.pdf');
-
-        // Pipe the PDF into the response stream
         doc.pipe(res);
 
-        // Consulta para obtener solo el último subsidio detalle y la información del beneficiario
         const sql = `SELECT sd.IdSubsidioDetalle, sd.IdSubsidio, sd.IdBeneficiario, sd.Importe, sd.Estado,
                             b.TipoDocumento, b.NumeroDocumento, b.Apellido, b.Nombre
                      FROM SubsidiosDetalle sd
@@ -185,7 +158,6 @@ app.get('/subsidios-detalle/pdf-ultimo', async (req, res) => {
                      ORDER BY sd.IdSubsidioDetalle DESC
                      LIMIT 1`;
 
-        // Ejecuta la consulta en la base de datos
         connection.query(sql, (err, result) => {
             if (err) {
                 console.error('Error al obtener el último subsidio detalle:', err);
@@ -193,11 +165,8 @@ app.get('/subsidios-detalle/pdf-ultimo', async (req, res) => {
                 return;
             }
 
-            // Verifica si se encontró un subsidio detalle
             if (result.length > 0) {
                 const subsidioDetalle = result[0];
-
-                // Agrega los datos del subsidio detalle al PDF
                 doc
                     .fontSize(12)
                     .text(`Subsidio detalle ID: ${subsidioDetalle.IdSubsidioDetalle}`, { align: 'left' })
@@ -213,8 +182,6 @@ app.get('/subsidios-detalle/pdf-ultimo', async (req, res) => {
                 console.log('No se encontraron subsidios detalles.');
                 doc.text('No se encontraron subsidios detalles.');
             }
-
-            // Finaliza el documento PDF
             doc.end();
         });
     } catch (error) {
@@ -223,19 +190,13 @@ app.get('/subsidios-detalle/pdf-ultimo', async (req, res) => {
     }
 });
 
-// Función para generar el PDF con los subsidios detalle especificados y la información del beneficiario
 const generatePDF = (subsidioDetalle, res) => {
     try {
-        const doc = new PDFDocument(); // Crea un nuevo documento PDF
-
-        // Establece el encabezado y el tipo de contenido de la respuesta HTTP
+        const doc = new PDFDocument();
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=subsidios_detalle.pdf');
-
-        // Pipe the PDF into the response stream
         doc.pipe(res);
 
-        // Agrega los datos del subsidio detalle al PDF
         doc
             .fontSize(12)
             .text(`Subsidio detalle ID: ${subsidioDetalle.IdSubsidioDetalle}`, { align: 'left' })
@@ -249,7 +210,6 @@ const generatePDF = (subsidioDetalle, res) => {
             .text(`Apellido: ${subsidioDetalle.Beneficiario.Apellido}`, { align: 'left' })
             .text(`Nombre: ${subsidioDetalle.Beneficiario.Nombre}`, { align: 'left' });
 
-        // Finaliza el documento PDF
         doc.end();
     } catch (error) {
         console.error('Error al generar el PDF:', error);
@@ -257,11 +217,9 @@ const generatePDF = (subsidioDetalle, res) => {
     }
 };
 
-// Ruta para registrar un nuevo subsidio
 app.post('/subsidios/registrar', (req, res) => {
     const { Descripcion, IdOficina, FechaDeAlta, Anio, Mes, Estado, Eliminado } = req.body;
 
-    // Realiza la inserción en la base de datos
     const sql = `INSERT INTO Subsidios (Descripcion, IdOficina, FechaDeAlta, Anio, Mes, Estado, Eliminado) VALUES (?, ?, ?, ?, ?, ?, false)`;
     connection.query(sql, [Descripcion, IdOficina, FechaDeAlta, Anio, Mes, Estado, Eliminado], (err, result) => {
         if (err) {
@@ -269,18 +227,15 @@ app.post('/subsidios/registrar', (req, res) => {
             res.status(500).json({ message: 'Error al insertar subsidio' });
             return;
         }
-        console.log('Subsidio registrado correctamente');
-        res.status(200).json({ message: 'Subsidio registrado correctamente' });
+        console.log('SubsidioForm registrado correctamente');
+        res.status(200).json({ message: 'SubsidioForm registrado correctamente' });
     });
 });
 
-// Ruta para crear un nuevo beneficiario
 app.post('/beneficiarios/crear', (req, res) => {
     const { IdBeneficiario, TipoDocumento, NumeroDocumento, Apellido, Nombre } = req.body;
 
-    // Realizar la inserción en la base de datos
-    const sql = `INSERT INTO Beneficiarios (IdBeneficiario, TipoDocumento, NumeroDocumento, Apellido, Nombre) 
-                 VALUES (?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO Beneficiarios (IdBeneficiario, TipoDocumento, NumeroDocumento, Apellido, Nombre) VALUES (?, ?, ?, ?, ?)`;
     connection.query(sql, [IdBeneficiario, TipoDocumento, NumeroDocumento, Apellido, Nombre], (err, result) => {
         if (err) {
             console.error('Error al crear beneficiario:', err);
@@ -292,8 +247,6 @@ app.post('/beneficiarios/crear', (req, res) => {
     });
 });
 
-
-// Ruta para obtener las oficinas disponibles
 app.get('/oficinas', (req, res) => {
     const sql = 'SELECT IdOficina, Descripcion FROM Oficinas';
     connection.query(sql, (err, results) => {
@@ -306,11 +259,9 @@ app.get('/oficinas', (req, res) => {
     });
 });
 
-// Ruta para eliminar un subsidio existente
 app.put('/subsidios/:id', (req, res) => {
     const subsidioId = req.params.id;
 
-    // Realiza la actualización en la base de datos para marcar el subsidio como eliminado
     const sql = `UPDATE Subsidios SET Eliminado = true WHERE IdSubsidio = ?`;
     connection.query(sql, [subsidioId], (err, result) => {
         if (err) {
@@ -318,12 +269,11 @@ app.put('/subsidios/:id', (req, res) => {
             res.status(500).json({ message: 'Error al eliminar subsidio' });
             return;
         }
-        console.log('Subsidio eliminado correctamente');
-        res.status(200).json({ message: 'Subsidio eliminado correctamente' });
+        console.log('SubsidioForm eliminado correctamente');
+        res.status(200).json({ message: 'SubsidioForm eliminado correctamente' });
     });
 });
 
-// Ruta para obtener los subsidios existentes que no han sido eliminados
 app.get('/subsidios', (req, res) => {
     const sql = 'SELECT * FROM Subsidios WHERE Eliminado = false';
     connection.query(sql, (err, results) => {
@@ -336,11 +286,9 @@ app.get('/subsidios', (req, res) => {
     });
 });
 
-// Ruta para eliminar un subsidio-detalle existente
 app.delete('/subsidios-detalle/:id', (req, res) => {
     const subsidioDetalleId = req.params.id;
 
-    // Realiza la eliminación en la base de datos
     const sql = `DELETE FROM SubsidiosDetalle WHERE IdSubsidioDetalle = ?`;
     connection.query(sql, [subsidioDetalleId], (err, result) => {
         if (err) {
@@ -348,12 +296,11 @@ app.delete('/subsidios-detalle/:id', (req, res) => {
             res.status(500).json({ message: 'Error al eliminar subsidio-detalle' });
             return;
         }
-        console.log('Subsidio-detalle eliminado correctamente');
-        res.status(200).json({ message: 'Subsidio-detalle eliminado correctamente' });
+        console.log('SubsidioForm-detalle eliminado correctamente');
+        res.status(200).json({ message: 'SubsidioForm-detalle eliminado correctamente' });
     });
 });
 
-// Ruta para obtener los subsidios detalle existentes
 app.get('/subsidios-detalle', (req, res) => {
     const sql = `SELECT sd.IdSubsidioDetalle, sd.IdSubsidio, sd.IdBeneficiario, sd.Importe, sd.Estado, 
                         b.Nombre AS NombreBeneficiario, b.Apellido AS ApellidoBeneficiario
@@ -369,12 +316,10 @@ app.get('/subsidios-detalle', (req, res) => {
     });
 });
 
-// Ruta para listar todos los subsidios de un beneficiario
 app.get('/subsidios/beneficiario/:id', async (req, res) => {
     const beneficiarioId = req.params.id;
 
     try {
-        // Realiza la consulta en la base de datos para obtener los subsidios del beneficiario
         const sql = `
             SELECT s.*
             FROM Subsidios s
@@ -402,7 +347,6 @@ app.get('/subsidios/oficina/:idOficina/:fechaInicio/:fechaFin', async (req, res)
     const fechaFin = req.params.fechaFin;
 
     try {
-        // Realiza la consulta en la base de datos para obtener los subsidios de la oficina en el rango de fechas
         const sql = `
             SELECT s.*
             FROM Subsidios s
@@ -425,16 +369,14 @@ app.get('/subsidios/oficina/:idOficina/:fechaInicio/:fechaFin', async (req, res)
     }
 });
 
-// Manejar la señal SIGINT (Ctrl+C) para cerrar la conexión a la base de datos antes de salir
-// No necesitas cerrar la conexión aquí
 process.on('SIGINT', () => {
     console.log('Cerrando conexión a la base de datos...');
     connection.end(() => {
         console.log('Conexión cerrada');
-        process.exit(0); // Salir del proceso Node.js
+        process.exit(0);
     });
 });
-// Iniciar el servidor
+
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
 });

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import SubsidioForm from "../Subsidio/SubsidioForm.js";
+import SubsidioForm from "../SubsidioForm/SubsidioForm.js";
 import EliminarSubsidio from "../EliminarSubsidio/EliminarSubsidio.js";
-import AgregarSubsidioDetalle from "../SubsidioDetalle/AgregarSubsidioDetalle.js";
-import SubsidioDetalleEliminar from "../SubsidioDetalleEliminar/SubsidioDetalleEliminar.js"; // Importa el nuevo componente
+import AgregarSubsidioDetalle from "../AgregarSubsidioDetalle/AgregarSubsidioDetalle.js";
+import SubsidioDetalleEliminar from "../SubsidioDetalleEliminar/SubsidioDetalleEliminar.js";
 import SubsidiosBeneficiario from "../SubsidiosBeneficiario/SubsidiosBeneficiario.js";
 import SubsidiosOficina from "../SubsidiosOficina/SubsidiosOficina.js";
 
