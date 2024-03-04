@@ -65,11 +65,49 @@ const verificarBeneficiarioAsociado = async (IdSubsidio, IdBeneficiario) => {
     });
 };
 
+const verificarBeneficiarioEnOficinaYSubsidio = async (IdOficina, IdBeneficiario, Anio, Mes) => {
+    return new Promise((resolve, reject) => {
+        const sql = 'SELECT * FROM Subsidios WHERE IdOficina = ? AND Anio = ? AND Mes = ?';
+        connection.query(sql, [IdOficina, Anio, Mes], async (err, subsidios) => {
+            if (err) {
+                console.error('Error al verificar beneficiario en oficina y subsidio:', err);
+                reject(err);
+            } else {
+                try {
+                    // Iterar sobre los subsidios encontrados
+                    for (const subsidio of subsidios) {
+                        // Verificar si el beneficiario ya está asociado a este subsidio
+                        const beneficiarioAsociado = await verificarBeneficiarioAsociado(subsidio.IdSubsidio, IdBeneficiario);
+                        if (beneficiarioAsociado) {
+                            // Si el beneficiario ya está asociado a este subsidio, resolver true
+                            resolve(true);
+                            return;
+                        }
+                    }
+                    // Si no se encontraron coincidencias, resolver false
+                    resolve(false);
+                } catch (error) {
+                    console.error('Error al verificar beneficiario asociado:', error);
+                    reject(error);
+                }
+            }
+        });
+    });
+};
 // Ruta para agregar un nuevo subsidio-detalle
 app.post('/subsidios-detalle/agregar', async (req, res) => {
     const { IdSubsidio, IdBeneficiario, Importe, Estado } = req.body;
 
     try {
+
+        // Verificar si el beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes
+        const oficinaSubsidioExistente = await verificarBeneficiarioEnOficinaYSubsidio(IdSubsidio, IdBeneficiario, req.body.Anio, req.body.Mes);
+
+        if (oficinaSubsidioExistente === true) {
+            console.log("El beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes", oficinaSubsidioExistente);
+            return res.status(409).json({ message: 'El beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes', IdBeneficiario });
+        }
+
         // Verificar si el beneficiario ya existe
         const beneficiarioExistente = await verificarBeneficiarioExistente(IdBeneficiario);
 

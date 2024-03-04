@@ -36,6 +36,9 @@ function AgregarSubsidioDetalle() {
             }else if (error.response.status === 404 && error.response.data.message === 'El beneficiario ya está asociado a un subsidio de este tipo') {
                 alert('El beneficiario ya está asociado a un subsidio de este tipo');
             }
+            else if (error.response.status === 409 && error.response.data.message === 'El beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes') {
+                alert('El beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes');
+            }
             else {
                 console.error('Error al agregar subsidio-detalle:', error);
             }
