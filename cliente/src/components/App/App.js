@@ -4,7 +4,7 @@ import SubsidioForm from "../Subsidio/SubsidioForm.js";
 import EliminarSubsidio from "../EliminarSubsidio/EliminarSubsidio.js";
 import AgregarSubsidioDetalle from "../SubsidioDetalle/AgregarSubsidioDetalle.js";
 import SubsidioDetalleEliminar from "../SubsidioDetalleEliminar/SubsidioDetalleEliminar.js"; // Importa el nuevo componente
-import SubsidiosListados from "../SubsidiosListados/SubsidiosListados.js";
+import SubsidiosBeneficiario from "../SubsidiosBeneficiario/SubsidiosBeneficiario.js";
 
 import axios from 'axios';
 
@@ -38,7 +38,7 @@ const App = () => {
             <EliminarSubsidio onEliminacionExitosa={handleEliminacionExitosa} />
             <AgregarSubsidioDetalle />
             <SubsidioDetalleEliminar onEliminacionExitosa={handleEliminacionExitosa} />
-            <SubsidiosListados />
+            <SubsidiosBeneficiario />
         </div>
     );
 };

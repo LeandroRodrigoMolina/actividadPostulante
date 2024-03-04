@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-function SubsidiosListados() {
+function SubsidiosBeneficiario() {
     const [personaId, setPersonaId] = useState('');
     const [resultados, setResultados] = useState([]);
 
@@ -41,4 +41,4 @@ function SubsidiosListados() {
     );
 }
 
-export default SubsidiosListados;
+export default SubsidiosBeneficiario;
