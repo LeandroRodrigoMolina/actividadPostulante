@@ -39,6 +39,9 @@ function AgregarSubsidioDetalle() {
             else if (error.response.status === 409 && error.response.data.message === 'El beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes') {
                 alert('El beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes');
             }
+            else if (error.response.status === 400 && error.response.data.message === 'El importe supera el límite permitido') {
+                alert('El importe supera el límite permitido');
+            }
             else {
                 console.error('Error al agregar subsidio-detalle:', error);
             }

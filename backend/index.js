@@ -100,6 +100,11 @@ app.post('/subsidios-detalle/agregar', async (req, res) => {
 
     try {
 
+        if (Importe > 1000000) {
+            console.log("El importe supera el límite permitido", Importe > 1000000);
+            return res.status(400).json({ message: 'El importe supera el límite permitido' });
+        }
+
         // Verificar si el beneficiario ya está asociado a un subsidio en la misma oficina y el mismo año/mes
         const oficinaSubsidioExistente = await verificarBeneficiarioEnOficinaYSubsidio(IdSubsidio, IdBeneficiario, req.body.Anio, req.body.Mes);
 
