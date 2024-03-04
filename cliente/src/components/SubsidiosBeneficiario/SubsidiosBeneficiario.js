@@ -5,12 +5,22 @@ function SubsidiosBeneficiario() {
     const [personaId, setPersonaId] = useState('');
     const [resultados, setResultados] = useState([]);
 
+    // Función para limpiar los resultados previos
+    const limpiarResultados = () => {
+        setResultados([]);
+    };
+
     const handleListarSubsidios = async () => {
         try {
-            // Realizar una solicitud GET al backend para obtener los subsidios de la persona
-            console.log('Valor de personaId:', personaId);
+            // Validar que el campo no esté vacío
+            if (!personaId) {
+                console.error('Por favor, ingrese el ID de la persona.');
+                return;
+            }
+
+            limpiarResultados(); // Limpiar resultados previos
+
             const response = await axios.get(`http://localhost:5000/subsidios/beneficiario/${personaId}`);
-            // Establecer los resultados obtenidos del backend en el estado
             setResultados(response.data);
         } catch (error) {
             console.error('Error al listar subsidios:', error);

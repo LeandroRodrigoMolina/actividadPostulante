@@ -396,8 +396,8 @@ app.get('/subsidios/beneficiario/:id', async (req, res) => {
     }
 });
 
-// Define la ruta para listar los subsidios de una oficina en un rango de fechas
-app.get('/subsidios/oficina/:fechaInicio/:fechaFin', async (req, res) => {
+app.get('/subsidios/oficina/:idOficina/:fechaInicio/:fechaFin', async (req, res) => {
+    const idOficina = req.params.idOficina;
     const fechaInicio = req.params.fechaInicio;
     const fechaFin = req.params.fechaFin;
 
@@ -406,10 +406,12 @@ app.get('/subsidios/oficina/:fechaInicio/:fechaFin', async (req, res) => {
         const sql = `
             SELECT s.*
             FROM Subsidios s
+            INNER JOIN SubsidiosDetalle sd ON s.IdSubsidio = sd.IdSubsidio
             WHERE s.FechaDeAlta BETWEEN ? AND ?
+            AND s.IdOficina = ?
         `;
 
-        connection.query(sql, [fechaInicio, fechaFin], (err, results) => {
+        connection.query(sql, [fechaInicio, fechaFin, idOficina], (err, results) => {
             if (err) {
                 console.error('Error al obtener los subsidios para la oficina en el rango de fechas:', err);
                 res.status(500).json({ message: 'Error al obtener los subsidios para la oficina en el rango de fechas' });
@@ -422,7 +424,6 @@ app.get('/subsidios/oficina/:fechaInicio/:fechaFin', async (req, res) => {
         res.status(500).json({ message: 'Error al listar los subsidios para la oficina en el rango de fechas' });
     }
 });
-
 
 // Manejar la señal SIGINT (Ctrl+C) para cerrar la conexión a la base de datos antes de salir
 // No necesitas cerrar la conexión aquí
