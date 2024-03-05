@@ -16,7 +16,7 @@ function EliminarSubsidio({ onEliminacionExitosa }) {
         };
 
         fetchSubsidios();
-    }, []);
+    });
 
     const handleEliminarSubsidio = async () => {
         try {
