@@ -77,13 +77,14 @@ function SubsidiosOficina() {
             <button onClick={exportToPDF}>Exportar a PDF</button>
 
             <div>
-                {resultados.map((subsidio) => (
-                    <div key={`subsidio_${subsidio.IdSubsidio}`}>
-                        <p>ID: {subsidio.IdSubsidio}</p>
-                        <p>Descripción: {subsidio.Descripcion}</p>
-                        <p>Fecha de Alta: {subsidio.FechaDeAlta}</p>
+                {resultados.map((subsidio, index) => (
+                    <div key={`subsidio_${index}`}>
+                        <p>ID del Subsidio: {subsidio.IdSubsidio}</p>
+                        <p>Descripción del Subsidio: {subsidio.Descripcion}</p>
+                        <p>Fecha de Alta del Subsidio: {subsidio.FechaDeAlta}</p>
                     </div>
                 ))}
+
             </div>
         </div>
     );
