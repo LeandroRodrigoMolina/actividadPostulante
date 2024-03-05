@@ -1,32 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-function SubsidioDetalleEliminar({ onEliminacionExitosa }) {
+function SubsidioDetalleEliminar({ handleActualizarSubsidioDetalle }) {
     const [subsidiosDetalle, setSubsidiosDetalle] = useState([]);
     const [selectedSubsidioDetalleId, setSelectedSubsidioDetalleId] = useState('');
+    const [fetchData, setFetchData] = useState(true);
 
     useEffect(() => {
         const fetchSubsidiosDetalle = async () => {
             try {
                 const response = await axios.get('http://localhost:5000/subsidios-detalle');
-                setSubsidiosDetalle(response.data);
+                const filteredSubsidiosDetalle = response.data.filter(subsidioDetalle => subsidioDetalle.Estado !== 'BA');
+                setSubsidiosDetalle(filteredSubsidiosDetalle);
             } catch (error) {
                 console.error('Error al obtener los subsidios detalle:', error);
             }
         };
 
         fetchSubsidiosDetalle();
-    }, []);
+    }, [fetchData]);
 
     const handleEliminarSubsidioDetalle = async () => {
         try {
-            const response = await axios.delete(`http://localhost:5000/subsidios-detalle/${selectedSubsidioDetalleId}`);
-            console.log(response.data.message);
-            // Llamar a la función de eliminación exitosa proporcionada por el componente padre
-            onEliminacionExitosa();
+            await axios.delete(`http://localhost:5000/subsidios-detalle/${selectedSubsidioDetalleId}`);
+            console.log('Subsidio detalle eliminado correctamente');
+            setFetchData(!fetchData); // Invertir el estado para forzar la actualización de la lista
         } catch (error) {
             console.error('Error al eliminar subsidio-detalle:', error);
-            // Manejar el error si es necesario
         }
     };
 
@@ -37,7 +37,7 @@ function SubsidioDetalleEliminar({ onEliminacionExitosa }) {
                 onChange={(e) => setSelectedSubsidioDetalleId(e.target.value)}
             >
                 <option value="">Seleccionar Subsidio Detalle a Eliminar</option>
-                {subsidiosDetalle.map(subsidioDetalle => (
+                {subsidiosDetalle.sort((a, b) => a.IdSubsidioDetalle - b.IdSubsidioDetalle).map(subsidioDetalle => (
                     <option key={subsidioDetalle.IdSubsidioDetalle} value={subsidioDetalle.IdSubsidioDetalle}>
                         Subsidio detalle ID: {subsidioDetalle.IdSubsidioDetalle} - Beneficiario: {subsidioDetalle.NombreBeneficiario} {subsidioDetalle.ApellidoBeneficiario}
                     </option>

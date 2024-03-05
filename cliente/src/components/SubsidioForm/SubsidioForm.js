@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-
-function SubsidioForm() {
+function SubsidioForm({ handleEliminacionExitosa }) {
     const [descripcion, setDescripcion] = useState('');
     const [idOficina, setIdOficina] = useState('');
     const [fechaDeAlta, setFechaDeAlta] = useState('');
@@ -34,6 +33,15 @@ function SubsidioForm() {
                 Eliminado: false
             });
             console.log(response.data.message);
+            // Llamar a la función de nuevo subsidio proporcionada por el componente padre
+            handleEliminacionExitosa();
+            // Limpiar los campos después de registrar el subsidio
+            setDescripcion('');
+            setIdOficina('');
+            setFechaDeAlta('');
+            setAnio('');
+            setMes('');
+            setEstado('AC');
         } catch (error) {
             console.error('Error al registrar subsidio:', error);
         }

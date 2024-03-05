@@ -14,21 +14,29 @@ function SubsidiosBeneficiario() {
 
     const exportToExcel = () => {
         const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(resultados);
+        const ws = XLSX.utils.json_to_sheet(resultados.map(subsidio => ({
+            'ID del Subsidio': subsidio.IdSubsidio,
+            'Descripción del Subsidio': subsidio.Descripcion,
+            'Fecha de Alta del Subsidio': subsidio.FechaDeAlta,
+            'Oficina donde está el subsidio': subsidio.IdOficina,
+            'Estado del subsidio': subsidio.Estado
+        })));
         XLSX.utils.book_append_sheet(wb, ws, 'Subsidios');
         XLSX.writeFile(wb, 'subsidios.xlsx');
     };
 
     const exportToPDF = () => {
         const doc = new jsPDF();
-        doc.text('Listado de Subsidios', 10, 10);
+        doc.text('Listado de Subsidios del beneficiario', 10, 10);
 
         let yPos = 20;
         resultados.forEach((subsidio) => {
-            doc.text(`ID: ${subsidio.IdSubsidio}`, 10, yPos);
-            doc.text(`Descripción: ${subsidio.Descripcion}`, 10, yPos + 5);
-            doc.text(`Fecha de Alta: ${subsidio.FechaDeAlta}`, 10, yPos + 10);
-            yPos += 20;
+            doc.text(`ID del Subsidio: ${subsidio.IdSubsidio}`, 10, yPos);
+            doc.text(`Descripción del Subsidio: ${subsidio.Descripcion}`, 10, yPos + 5);
+            doc.text(`Fecha de Alta del Subsidio: ${subsidio.FechaDeAlta}`, 10, yPos + 10);
+            doc.text(`Oficina donde está el subsidio: ${subsidio.IdOficina}`, 10, yPos + 15);
+            doc.text(`Estado del subsidio: ${subsidio.Estado}`, 10, yPos + 20);
+            yPos += 30;
         });
 
         doc.save('subsidios.pdf');
@@ -65,11 +73,14 @@ function SubsidiosBeneficiario() {
             <button onClick={exportToPDF}>Exportar a PDF</button>
 
             <div>
-                {resultados.map((subsidio) => (
-                    <div key={subsidio.IdSubsidio}>
-                        <p>ID: {subsidio.IdSubsidio}</p>
-                        <p>Descripción: {subsidio.Descripcion}</p>
-                        <p>Fecha de Alta: {subsidio.FechaDeAlta}</p>
+                {resultados.map((subsidio, index) => (
+                    <div key={`${subsidio.IdSubsidio}-${index}`}>
+                        <p>ID del Subsidio: {subsidio.IdSubsidio}</p>
+                        <p>Descripción del Subsidio: {subsidio.Descripcion}</p>
+                        <p>Fecha de Alta del Subsidio: {subsidio.FechaDeAlta}</p>
+                        <p>Oficina donde esta el subsidio: {subsidio.IdOficina}</p>
+                        <p>Estado del subsidio: {subsidio.Estado}</p>
+                        <br/>
                     </div>
                 ))}
             </div>

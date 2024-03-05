@@ -28,7 +28,7 @@ app.use(cors());
 
 const verificarBeneficiarioExistente = async (IdBeneficiario) => {
     return new Promise((resolve, reject) => {
-        const sql = 'SELECT * FROM SubsidiosDetalle WHERE IdBeneficiario = ?';
+        const sql = 'SELECT * FROM Beneficiarios WHERE IdBeneficiario = ?';
         connection.query(sql, [IdBeneficiario], (err, rows) => {
             if (err) {
                 console.error('Error al verificar beneficiario existente:', err);
@@ -235,7 +235,7 @@ app.post('/subsidios/registrar', (req, res) => {
 app.post('/beneficiarios/crear', (req, res) => {
     const { IdBeneficiario, TipoDocumento, NumeroDocumento, Apellido, Nombre } = req.body;
 
-    const sql = `INSERT INTO Beneficiarios (IdBeneficiario, TipoDocumento, NumeroDocumento, Apellido, Nombre) VALUES (?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO Beneficiarios (TipoDocumento, NumeroDocumento, Apellido, Nombre) VALUES (?, ?, ?, ?)`;
     connection.query(sql, [IdBeneficiario, TipoDocumento, NumeroDocumento, Apellido, Nombre], (err, result) => {
         if (err) {
             console.error('Error al crear beneficiario:', err);
@@ -262,7 +262,7 @@ app.get('/oficinas', (req, res) => {
 app.put('/subsidios/:id', (req, res) => {
     const subsidioId = req.params.id;
 
-    const sql = `UPDATE Subsidios SET Eliminado = true WHERE IdSubsidio = ?`;
+    const sql = `UPDATE Subsidios SET Eliminado = true, Estado = 'BA' WHERE IdSubsidio = ?`;
     connection.query(sql, [subsidioId], (err, result) => {
         if (err) {
             console.error('Error al eliminar subsidio:', err);
@@ -288,8 +288,8 @@ app.get('/subsidios', (req, res) => {
 
 app.delete('/subsidios-detalle/:id', (req, res) => {
     const subsidioDetalleId = req.params.id;
-
-    const sql = `DELETE FROM SubsidiosDetalle WHERE IdSubsidioDetalle = ?`;
+    //Para eliminarlo cambia el estado a BA (baja)
+    const sql = `UPDATE SubsidiosDetalle SET Estado = 'BA' WHERE IdSubsidioDetalle = ?`;
     connection.query(sql, [subsidioDetalleId], (err, result) => {
         if (err) {
             console.error('Error al eliminar subsidio-detalle:', err);

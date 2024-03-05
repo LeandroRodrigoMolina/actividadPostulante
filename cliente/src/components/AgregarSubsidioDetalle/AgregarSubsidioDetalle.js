@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import SubsidioDetallePDF from "../SubsidioDetallePDF/SubsidioDetallePDF.js";
 
-function AgregarSubsidioDetalle() {
+function AgregarSubsidioDetalle({ handleCrearSubsidioDetalle }) {
     const initialFormData = {
         IdSubsidio: '',
         IdBeneficiario: '',
@@ -29,6 +29,7 @@ function AgregarSubsidioDetalle() {
             const response = await axios.post('http://localhost:5000/subsidios-detalle/agregar', formData);
             console.log(response.data);
             setShowPDF(true);
+            handleCrearSubsidioDetalle(); // Llama a la función para actualizar el componente SubsidioDetalleEliminar
         } catch (error) {
             if (error.response.status === 404 && error.response.data.message === 'El beneficiario no existe') {
                 alert('El beneficiario no existe. Crealo.');

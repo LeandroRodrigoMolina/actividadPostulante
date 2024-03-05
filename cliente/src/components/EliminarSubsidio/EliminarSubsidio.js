@@ -16,7 +16,7 @@ function EliminarSubsidio({ onEliminacionExitosa }) {
         };
 
         fetchSubsidios();
-    });
+    }, [onEliminacionExitosa]); // Dependencia de la función onEliminacionExitosa
 
     const handleEliminarSubsidio = async () => {
         try {
